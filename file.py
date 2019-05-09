@@ -7,7 +7,7 @@ from ev3dev2.sensor.lego import ColorSensor
 from ev3dev2.sensor import INPUT_1, INPUT_4
 from math import pi
 
-K = 0.35
+K = 0.3
 DIFF = 15
 SPEED = 35
 D = 5.55
@@ -28,60 +28,60 @@ class Robot:
         self.mD = LargeMotor(OUTPUT_D)
         self.mC = LargeMotor(OUTPUT_C)
         self.btn = Button()
+        self.way = 1
         self.mC.reset()
         self.mD.reset()
 
     def run_motors(self):
-        s1, s4 = robot.snsr1.value(), robot.snsr2.value()
+        s1, s4 = self.snsr1.value(), self.snsr2.value()
         error = s4 - s1 - DIFF
         u = error * K
-        robot.mD.on(SPEED - u)
-        robot.mC.on(SPEED + u)
+        self.mD.on(SPEED - u)
+        self.mC.on(SPEED + u)
 
     def fix_pos(self):
-        s1, s4 = robot.snsr1.value(), robot.snsr2.value()
+        s1, s4 = self.snsr1.value(), self.snsr2.value()
         error = s4 - s1 - DIFF
         while abs(error) > 5:
-            s1, s4 = robot.snsr1.value(), robot.snsr2.value()
+            s1, s4 = self.snsr1.value(), self.snsr2.value()
             error = s4 - s1 - DIFF
             u = error * K
-            robot.mD.on(-u)
-            robot.mC.on(u)
+            self.mD.on(-u)
+            self.mC.on(u)
             sleep(0.05)
-        robot.mD.stop()
-        robot.mC.stop()
+        self.mD.stop()
+        self.mC.stop()
         sleep(0.1)
 
     def move_dist(self, l):
-        c = (360 * l * 2) / (pi * D) + robot.mD.position + robot.mC.position
-        motor1, motor4 = robot.mD.position, robot.mC.position
+        c = (360 * l * 2) / (pi * D) + self.mD.position + self.mC.position
+        motor1, motor4 = self.mD.position, self.mC.position
         while motor1 + motor4 < c:
             self.run_motors()
-            motor1, motor4 = robot.mD.position, robot.mC.position
+            motor1, motor4 = self.mD.position, self.mC.position
             sleep(0.01)
-        robot.mD.stop()
-        robot.mC.stop()
+        self.mD.stop()
+        self.mC.stop()
 
     def stop_near_crossroad(self):
-        s1, s4 = robot.snsr1.value(), robot.snsr2.value()
+        s1, s4 = self.snsr1.value(), self.snsr2.value()
         while s1 + s4 > 50:
-            s1, s4 = robot.snsr1.value(), robot.snsr2.value()
+            s1, s4 = self.snsr1.value(), self.snsr2.value()
             self.run_motors()
             sleep(0.01)
         self.move_dist(7.5)
-        robot.mD.stop()
-        robot.mC.stop()
+        self.mD.stop()
+        self.mC.stop()
 
     def get_type_of_cell(self):
-        pass
-
-    def turn_around(self, deg):
         l = []
-        a = 2 * B * deg / D + robot.mD.position + robot.mC.position
+        self.mC.reset()
+        self.mD.reset()
+        a = 2 * B * 360 / D + self.mD.position + self.mC.position
         self.mD.on(30)
         self.mC.on(-30)
-        while abs(robot.mD.position) + abs(robot.mC.position) < a:
-            l.append(robot.snsr1.value())
+        while abs(self.mD.position) + abs(self.mC.position) < a:
+            l.append(self.snsr1.value())
             sleep(0.01)
         col, num, ch = [], 0, len(l) / 4
         while l:
@@ -92,8 +92,8 @@ class Robot:
                     num += 1
             l.pop(0)
             num += 1
-        robot.mD.stop()
-        robot.mC.stop()
+        self.mD.stop()
+        self.mC.stop()
         if col[0] == 1:
             self.fix_pos()
         if len(col) == 1:
@@ -104,7 +104,6 @@ class Robot:
             elif col[0] == col[1] - 1:
                 field = (2, col[0])
         elif len(col) == 3:
-            print(col)
             if col[2] == col[1] + 1 and col[1] == col[0] + 1:
                 field = (4, col[1])
             elif col[2] == col[1] + 2 and col[1] == col[0] + 1:
@@ -113,12 +112,54 @@ class Robot:
                 field = (4, col[2])
         elif len(col) == 4:
             field = (5, 1)
-        print(field)
+        return field
 
+    def turn_around(self, deg):
+        self.mC.reset()
+        self.mD.reset()
+        a = 2 * B * deg / D + self.mD.position + self.mC.position
+        self.mD.on(30)
+        self.mC.on(-30)
+        while abs(self.mD.position) + abs(self.mC.position) < a:
+            sleep(0.01)
+
+    def localization(self):
+        pos, variants = {}, []
+        self.move_x = 0
+        self.move_y = 0
+        pos1 = self.get_type_of_cell()
+        pos[(self.move_x, self.move_y)] = pos1
+        for i in range(4):
+            for j in range(8):
+                if MAP[i][j] == pos[(self.move_x, self.move_y)]:
+                    variants.append((j,  i))
+        while len(variants) > 1:
+            variants = []
+            self.way = pos1[1]
+            self.turn_around(90 * (self.way - 1))
+            self.move_dist(30)
+            pos1 = self.get_type_of_cell()
+            if self.way % 2 == 0:
+                self.move_y = self.move_y + 3 - self.way
+            elif self.way % 2 == 1:
+                self.move_x = self.move_x + 2 - self.way
+            pos[(self.move_x, self.move_y)] = pos1
+            for i in range(4):
+                for j in range(8):
+                    f = True
+                    for k in list(pos.keys()):
+                        if 0 <= i + k[1] <= 3 and 0 <= j + k[0] <= 7:
+                            if MAP[i + k[1]][j + k[0]] != pos[k]:
+                                f = False
+                    if f:
+                        variants.append((j, i))
+        self.move_dist(1.5)
+        self.start_pos = variants[0]
+        self.current_pos = (variants[0][0] + self.move_x, variants[0][1] + self.move_y)
+        print(self.start_pos, self.current_pos)
 
 robot = Robot()
 
-robot.turn_around(360)
+robot.localization()
 # robot.stop_near_crossroad()
 # robot.get_type_of_cell()
-# steer.on_for_degrees(steering=100, speed=20, degrees=1000)
