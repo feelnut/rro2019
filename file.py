@@ -15,7 +15,7 @@ B = 17.55
 MAP = [[(2, 1), (3, 3), (2, 1), (1, 1), (1, 1), (4, 2), (1, 1), (2, 2)],
        [(4, 1), (1, 1), (5, 1), (3, 3), (7, 1), (4, 1), (3, 3), (1, 2)],
        [(4, 1), (3, 3), (1, 2), (7, 1), (7, 1), (4, 1), (1, 1), (4, 3)],
-       [(2, 4), (1, 1), (4, 4), (1, 1), (1, 1), (2, 3), (3, 1), (2, 4)]]
+       [(2, 4), (1, 1), (4, 4), (1, 1), (1, 1), (2, 3), (3, 1), (2, 3)]]
 
 
 class Robot:
@@ -158,8 +158,140 @@ class Robot:
         self.current_pos = (variants[0][0] + self.move_x, variants[0][1] + self.move_y)
         print(self.start_pos, self.current_pos)
 
+    def way(self, start, end):
+        move = []
+        if MAP[start[1]][start[0]][0] == 1:
+            if MAP[start[1]][start[0]][1] == 1:
+                move = [[start, (start[0] - 1, start[1])], [start, (start[0] + 1, start[1])]]
+            else:
+                move = [[start, (start[0], start[1] - 1)], [start, (start[0], start[1] + 1)]]
+        elif MAP[start[1]][start[0]][0] == 2:
+            if MAP[start[1]][start[0]][1] == 1:
+                move = [[start, (start[0] + 1, start[1])], [start, (start[0], start[1] + 1)]]
+            elif MAP[start[1]][start[0]][1] == 2:
+                move = [[start, (start[0] - 1, start[1])], [start, (start[0], start[1] + 1)]]
+            elif MAP[start[1]][start[0]][1] == 3:
+                move = [[start, (start[0] - 1, start[1])], [start, (start[0], start[1] - 1)]]
+            else:
+                move = [[start, (start[0] + 1, start[1])], [start, (start[0], start[1] - 1)]]
+        elif MAP[start[1]][start[0]][0] == 3:
+            if MAP[start[1]][start[0]][1] == 1:
+                move = [[start, (start[0] + 1, start[1])]]
+            elif MAP[start[1]][start[0]][1] == 2:
+                move = [[start, (start[0], start[1] + 1)]]
+            elif MAP[start[1]][start[0]][1] == 3:
+                move = [[start, (start[0] - 1, start[1])]]
+            else:
+                move = [[start, (start[0], start[1] - 1)]]
+        elif MAP[start[1]][start[0]][0] == 4:
+            if MAP[start[1]][start[0]][1] == 1:
+                move = [[start, (start[0], start[1] - 1)],
+                        [start, (start[0] + 1, start[1])],
+                        [start, (start[0], start[1] + 1)]]
+            elif MAP[start[1]][start[0]][1] == 2:
+                move = [[start, (start[0] + 1, start[1])],
+                        [start, (start[0], start[1] + 1)],
+                        [start, (start[0] - 1, start[1])]]
+            elif MAP[start[1]][start[0]][1] == 3:
+                move = [[start, (start[0], start[1] + 1)],
+                        [start, (start[0] - 1, start[1])],
+                        [start, (start[0], start[1] - 1)]]
+            else:
+                move = [[start, (start[0] - 1, start[1])],
+                        [start, (start[0], start[1] - 1)],
+                        [start, (start[0] + 1, start[1])]]
+        elif MAP[start[1]][start[0]][0] == 5:
+            move = [[start, (start[0], start[1] - 1)],
+                    [start, (start[0] + 1, start[1])],
+                    [start, (start[0], start[1] + 1)],
+                    [start, (start[0] - 1, start[1])]]
+        while all(x[-1] != end for x in move):
+            new_move = []
+            for i in range(len(move)):
+                if MAP[move[i][-1][1]][move[i][-1][0]][0] == 1:
+                    if MAP[move[i][-1][1]][move[i][-1][0]][1] == 1:
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                    else:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                elif MAP[move[i][-1][1]][move[i][-1][0]][0] == 2 or MAP[move[i][-1][1]][move[i][-1][0]][0] == 6:
+                    if MAP[move[i][-1][1]][move[i][-1][0]][1] == 1:
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                    elif MAP[move[i][-1][1]][move[i][-1][0]][1] == 2:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                    elif MAP[move[i][-1][1]][move[i][-1][0]][1] == 3:
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                    else:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                elif MAP[move[i][-1][1]][move[i][-1][0]][0] == 3:
+                    if MAP[move[i][-1][1]][move[i][-1][0]][1] == 1:
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                    elif MAP[move[i][-1][1]][move[i][-1][0]][1] == 2:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                    elif MAP[move[i][-1][1]][move[i][-1][0]][1] == 3:
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                    else:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                elif MAP[move[i][-1][1]][move[i][-1][0]][0] == 4:
+                    if MAP[move[i][-1][1]][move[i][-1][0]][1] == 1:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                    elif MAP[move[i][-1][1]][move[i][-1][0]][1] == 2:
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                    elif MAP[move[i][-1][1]][move[i][-1][0]][1] == 3:
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                    else:
+                        new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                        new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+                        new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                elif MAP[move[i][-1][1]][move[i][-1][0]][0] == 5:
+                    new_move.append(move[i] + [(move[i][-1][0] - 1, move[i][-1][1])])
+                    new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] + 1)])
+                    new_move.append(move[i] + [(move[i][-1][0] + 1, move[i][-1][1])])
+                    new_move.append(move[i] + [(move[i][-1][0], move[i][-1][1] - 1)])
+            i = 0
+            while i < len(new_move):
+                if new_move[i][-1] == new_move[i][-3]:
+                    del new_move[i]
+                else:
+                    i += 1
+            move = new_move[:]
+        var = []
+        for i in range(len(move)):
+            if move[i][-1] == end:
+                var.append(move[i])
+        if len(var) > 1:
+            i = 0
+            while i < len(var):
+                f = False
+                for j in var[i]:
+                    if MAP[j[1]][j[0]][0] == 6:
+                        f = True
+                if f:
+                    del var[i]
+                else:
+                    i += 1
+        if all(len(x) == len(var[0]) for x in var):
+            print(var[0])
+        else:
+            l = [len(x) for x in var]
+            print(var[l.index(min(l))])
+
+
+
+
 robot = Robot()
 
-robot.localization()
+robot.way((2, 1), (0, 0))
 # robot.stop_near_crossroad()
 # robot.get_type_of_cell()
