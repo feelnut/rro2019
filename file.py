@@ -21,6 +21,7 @@ MAP = [[(2, 1), (3, 3), (2, 1), (1, 1), (1, 1), (4, 2), (1, 1), (2, 2)],
 class Robot:
 
     def __init__(self):
+        # Запуск и настройка моторов и датчиков
         self.snsr1 = ColorSensor(INPUT_1)
         self.snsr2 = ColorSensor(INPUT_4)
         self.snsr1.mode = 'COL-REFLECT'
@@ -33,6 +34,7 @@ class Robot:
         self.mD.reset()
 
     def run_motors(self):
+        # Езда по чёрной полосе
         s1, s4 = self.snsr1.value(), self.snsr2.value()
         error = s4 - s1 - DIFF
         u = error * K
@@ -40,6 +42,8 @@ class Robot:
         self.mC.on(SPEED + u)
 
     def fix_pos(self):
+        # Исправление градуса поворота при сканировании клетки,
+        # если робот повернулся чуть больше/меньше, чем 360
         s1, s4 = self.snsr1.value(), self.snsr2.value()
         error = s4 - s1 - DIFF
         while abs(error) > 5:
@@ -54,6 +58,7 @@ class Robot:
         sleep(0.1)
 
     def move_dist(self, l):
+        # Проезд дистанции (в см)
         c = (360 * l * 2) / (pi * D) + self.mD.position + self.mC.position
         motor1, motor4 = self.mD.position, self.mC.position
         while motor1 + motor4 < c:
@@ -64,6 +69,7 @@ class Robot:
         self.mC.stop()
 
     def stop_near_crossroad(self):
+        # Остановка робота, если тот доехал до перекрёстка
         s1, s4 = self.snsr1.value(), self.snsr2.value()
         while s1 + s4 > 50:
             s1, s4 = self.snsr1.value(), self.snsr2.value()
@@ -74,16 +80,19 @@ class Robot:
         self.mC.stop()
 
     def get_type_of_cell(self):
+        # Сканирование клетки
         l = []
         self.mC.reset()
         self.mD.reset()
         a = 2 * B * 360 / D + self.mD.position + self.mC.position
         self.mD.on(30)
         self.mC.on(-30)
+        # Поворот на 360 градусов
         while abs(self.mD.position) + abs(self.mC.position) < a:
             l.append(self.snsr1.value())
             sleep(0.01)
         col, num, ch = [], 0, len(l) / 4
+        # Считаем количество полос, которые заметил робот
         while l:
             if l[0] < 20 and len(l) > 5 and l[5] < 20:
                 col.append(round(num // ch + 1))
@@ -94,8 +103,10 @@ class Robot:
             num += 1
         self.mD.stop()
         self.mC.stop()
+        # Коррекция градуса поворота
         if col[0] == 1:
             self.fix_pos()
+        # Получаем тип клетки
         if len(col) == 1:
             field = (3, col[0])
         elif len(col) == 2:
@@ -115,6 +126,7 @@ class Robot:
         return field
 
     def turn_around(self, deg):
+        # Поворот робота на определённый градус
         self.mC.reset()
         self.mD.reset()
         a = 2 * B * deg / D + self.mD.position + self.mC.position
@@ -124,9 +136,13 @@ class Robot:
             sleep(0.01)
 
     def localization(self):
+        # Локализация робота
         pos, variants = {}, []
         self.move_x = 0
         self.move_y = 0
+        # Сканируем клетку, смотрим количество совпадений на поле,
+        # если больше одного, то сканируем соседнюю клетку, так,
+        # пока не останется 1 вариант
         pos1 = self.get_type_of_cell()
         pos[(self.move_x, self.move_y)] = pos1
         for i in range(4):
@@ -153,12 +169,20 @@ class Robot:
                                 f = False
                     if f:
                         variants.append((j, i))
+        # Коррекция расстояния до центра клетки
         self.move_dist(1.5)
         self.start_pos = variants[0]
         self.current_pos = (variants[0][0] + self.move_x, variants[0][1] + self.move_y)
         print(self.start_pos, self.current_pos)
 
     def way(self, start, end):
+        # Построение маршрута по принципу:
+        # 1. Идём везде, куда можно
+        # 2. Если вернулись туда, где были(зациклились), то убираем этот вариант
+        # 3. Останавливаем построение маршрута, если один из вариантов заканчивается координатами нужной нам клетки
+        # 4. Удаляем все пути с плавным поворотом (у робота личная неприязнь, я тут ни при чём)
+        # 5. Выбираем тот, у которого наименьшая длина, иначе любой.
+        # 6. PROFIT!!!    ༼つ ◕_◕ ༽つ
         move = []
         if MAP[start[1]][start[0]][0] == 1:
             if MAP[start[1]][start[0]][1] == 1:
